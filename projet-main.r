@@ -184,11 +184,84 @@ data_reduced %>%
   summarise(count = n()) %>%
   pivot_wider(names_from = rating, values_from = count)
 
+# G (General Audiences) – All ages admitted.
+# PG (Parental Guidance Suggested) – Some material may not be suitable for children.
+# PG-13 (Parents Strongly Cautioned) – Some material may be inappropriate for children under 13.
+# R (Restricted) – Under 17 requires accompanying parent or adult guardian.
+# NC-17 (Adults Only) – No one 17 and under admitted.
 
+# Motion Picture Association film rating system Wikipedia page
 
+# From IMBb help:
+  
+#   'TV-MA' and 'X' is similar to 'NC-17'
+# 'Unrated' is the same as 'Not Rated'
+#'Approved' is similar to 'PG-13'
 
+library(dplyr)
 
+to_replace <- c('TV-MA' = 'NC-17',
+                'X' = 'NC-17',
+                'Unrated' = 'Not Rated',
+                'Approved' = 'PG-13')
 
+data_reduced$rating <- plyr::mapvalues(data_reduced$rating, from = names(to_replace), to = to_replace)
 
+table(data_reduced$rating)
+prop.table(table(data_reduced$rating))
+
+# look closer at the 'genre' column
+data_reduced %>%
+  group_by(success, genre) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = genre, values_from = count)
+
+count_genre <- table(data_reduced$genre)
+count_genre
+
+# create a list of main genres
+main_genres <- names(count_genre[count_genre > 10])
+main_genres
+
+# put all genres that are not in the list in the class 'other'
+data_reduced <- data_reduced %>%
+  mutate(genre = ifelse(genre %in% main_genres, genre, "Other"))
+
+prop.table(table(data_reduced$genre))
+
+data_reduced %>%
+  group_by(success, genre) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = genre, values_from = count)
+
+# look closer at the 'country' column
+count_country <- head(sort(table(data_reduced$country), decreasing = TRUE), 20)
+count_country
+
+# create a list of main countries
+main_countries <- names(count_country[count_country > 25])
+main_countries
+
+# put all countries that are not in the list in the class 'other'
+data_reduced$country <- ifelse(data_reduced$country %in% main_countries, data_reduced$country, "Other")
+table(data_reduced$success, data_reduced$country)
+
+# movie success might correlate with the movie creators' name recognition;
+# creators' name recognition depends on how many movies they have produced before the released date of the current movie.
+
+# create new dataframe before adding new columns for experience
+data_clean <- data_reduced %>% 
+  ungroup() %>% 
+  mutate(row_number = row_number()) %>% 
+  select(-c(success, row_number))  # remove 'success' and 'row_number' columns
+
+# create empty columns
+data_clean <- data_reduced
+data_clean$director_experience <- NA
+data_clean$writer_experience <- NA
+data_clean$star_experience <- NA
+data_clean$company_experience <- NA
+
+# calculate experience and save calculated values in new columns
 
 
